@@ -6,7 +6,6 @@ import (
 	"github.com/dawnzzz/hamble-tcp-server/logger"
 	"io"
 	"net"
-	"sync"
 	"sync/atomic"
 )
 
@@ -15,7 +14,9 @@ type Connection struct {
 	router iface.IRouter
 	conn   *net.TCPConn // 原始 socket TCP 连接
 
-	wg       sync.WaitGroup
+	msgChan chan iface.IMessage // 服务器待发送的消息放在这里
+
+	exitChan chan struct{}
 	isClosed atomic.Bool
 }
 
@@ -23,6 +24,9 @@ func NewConnection(conn *net.TCPConn, router iface.IRouter) iface.IConnection {
 	return &Connection{
 		conn:   conn,
 		router: router,
+
+		msgChan:  make(chan iface.IMessage),
+		exitChan: make(chan struct{}, 1),
 	}
 }
 
@@ -37,30 +41,47 @@ func (c *Connection) startRead() {
 		buf := make([]byte, dataPack.GetHeadLen())
 		_, err := c.conn.Read(buf)
 		if err != nil {
-			c.Stop()
+			c.exitChan <- struct{}{}
 			return
 		}
 
 		// 解包
 		msg, err := dataPack.Unpack(buf)
 		if err != nil {
-			c.Stop()
+			c.exitChan <- struct{}{}
 			return
 		}
 		dataBuf := make([]byte, msg.GetDataLen())
 		_, err = io.ReadFull(c.conn, dataBuf)
 		if err != nil {
-			c.Stop()
+			c.exitChan <- struct{}{}
 			return
 		}
 		msg.SetData(dataBuf)
 
 		request := NewRequest(c, msg)
 		go func() {
-			c.wg.Add(1)
-			defer c.wg.Done()
 			c.router.DoHandler(request) // 执行 handler
 		}()
+	}
+}
+
+func (c *Connection) startWrite() {
+	// 将消息封包，发送
+	dp := NewDataPack()
+
+	for msg := range c.msgChan {
+		packet, err := dp.Pack(msg)
+		if err != nil {
+			c.exitChan <- struct{}{}
+			return
+		}
+
+		if _, err = c.conn.Write(packet); err != nil {
+			// 发送失败，关闭连接
+			c.exitChan <- struct{}{}
+			return
+		}
 	}
 }
 
@@ -68,11 +89,23 @@ func (c *Connection) Start() {
 	logger.Infof("accept a connection from %s", c.RemoteAddr())
 
 	go c.startRead()
+	go c.startWrite()
 
-	c.wg.Wait()
+	// 阻塞，直到退出
+	select {
+	case <-c.exitChan:
+		return
+	}
 }
 
 func (c *Connection) Stop() {
+	if c.isClosed.Load() {
+		// 已经关闭，直接返回
+		return
+	}
+
+	// 关闭管道
+	close(c.msgChan)
 	c.isClosed.Store(true)
 	_ = c.conn.Close()
 
@@ -90,23 +123,14 @@ func (c *Connection) RemoteAddr() string {
 func (c *Connection) SendMsg(msgID uint32, data []byte) error {
 	if c.isClosed.Load() {
 		// 关闭直接返回
+		c.exitChan <- struct{}{}
 		return errors.New("connection closed when send msg")
 	}
 
-	// 将消息封包，发送
-	dp := NewDataPack()
 	msg := NewMessage(msgID, data)
-	packet, err := dp.Pack(msg)
-	if err != nil {
-		return err
-	}
 
-	if _, err = c.conn.Write(packet); err != nil {
-		// 发送失败，关闭连接
-		c.Stop()
-
-		return err
-	}
+	// 将消息推入c.msgChan，等待发送
+	c.msgChan <- msg
 
 	return nil
 }
