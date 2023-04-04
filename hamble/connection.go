@@ -29,7 +29,7 @@ func NewConnection(conn *net.TCPConn, server iface.IServer) iface.IConnection {
 		conn:      conn,
 
 		msgChan:    make(chan iface.IMessage),
-		msgBufChan: make(chan iface.IMessage, 1024),
+		msgBufChan: make(chan iface.IMessage, conf.GlobalProfile.MaxMsgChanLen),
 		exitChan:   make(chan struct{}, 1),
 	}
 }

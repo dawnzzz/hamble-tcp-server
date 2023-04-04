@@ -15,6 +15,7 @@ type Profile struct {
 	MaxPacketSize    uint32 `mapstructure:"max_packet_size"`     // 一个客户端数据包的最大数据长度
 	WorkerPoolSize   int    `mapstructure:"worker_pool_size"`    // Worker 数量
 	MaxWorkerTaskLen int    `mapstructure:"max_worker_task_len"` // Worker 任务队列长度
+	MaxMsgChanLen    int    `mapstructure:"max_msg_chan_len"`    // 连接发送队列的缓冲区长度
 }
 
 var GlobalProfile *Profile
@@ -32,6 +33,7 @@ func setViperDefault() {
 	viper.SetDefault("max_packet_size", 0)
 	viper.SetDefault("worker_pool_size", 10)
 	viper.SetDefault("max_worker_task_len", 1024)
+	viper.SetDefault("max_msg_chan_len", 1024)
 }
 
 // Reload 重新加载配置文件
