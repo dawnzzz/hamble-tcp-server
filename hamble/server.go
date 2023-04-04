@@ -1,4 +1,4 @@
-package server
+package hamble
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/dawnzzz/hamble-tcp-server/iface"
 	"github.com/dawnzzz/hamble-tcp-server/logger"
-	"github.com/dawnzzz/hamble-tcp-server/net/connection"
 	"github.com/sirupsen/logrus"
 	"net"
 	"os"
@@ -150,7 +149,7 @@ func (s *Server) Serve() {
 			continue
 		}
 
-		conn := connection.NewConnection(tcpConn)
+		conn := NewConnection(tcpConn)
 		s.connections[conn] = struct{}{}
 		go conn.Start() // 连接开始工作
 	}

@@ -1,4 +1,4 @@
-package connection
+package hamble
 
 import (
 	"github.com/dawnzzz/hamble-tcp-server/iface"
