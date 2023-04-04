@@ -56,14 +56,10 @@ func (c *Connection) startRead() {
 		msg.SetData(dataBuf)
 
 		request := NewRequest(c, msg)
-		// 选择handler
-		handler := c.router.GetHandler(msg.GetMsgID())
 		go func() {
 			c.wg.Add(1)
 			defer c.wg.Done()
-			handler.PreHandle(request)
-			handler.Handle(request)
-			handler.PostHandle(request)
+			c.router.DoHandler(request) // 执行 handler
 		}()
 	}
 }

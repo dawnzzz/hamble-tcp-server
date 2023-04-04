@@ -39,3 +39,11 @@ func (r *Router) GetHandler(id uint32) iface.IHandler {
 
 	return &BaseHandler{}
 }
+
+func (r *Router) DoHandler(request iface.IRequest) {
+	handler := r.GetHandler(request.GetMsgID()) // 根据MsgID获取handler
+
+	handler.PreHandle(request)
+	handler.Handle(request)
+	handler.PostHandle(request)
+}
