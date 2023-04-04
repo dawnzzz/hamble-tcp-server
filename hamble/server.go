@@ -166,6 +166,7 @@ func (s *Server) Serve() {
 				s.connectionsLock.Lock()
 				defer s.connectionsLock.Unlock()
 
+				conn.Stop()
 				delete(s.connections, conn) // 结束时删除连接
 			}()
 			conn.Start() // 连接开始工作
