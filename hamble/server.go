@@ -21,7 +21,10 @@ type Server struct {
 	IP      string // 服务器监听地址
 	Port    int    // 服务器端口号
 
-	connections map[iface.IConnection]struct{} // 记录当前的连接
+	router iface.IRouter
+
+	connections     map[iface.IConnection]struct{} // 记录当前的连接
+	connectionsLock sync.Mutex
 
 	ctx         context.Context
 	cancel      context.CancelFunc
@@ -32,7 +35,11 @@ type Server struct {
 func NewServer() iface.IServer {
 	ctx, cancel := context.WithCancel(context.Background())
 
+	router := newRouter()
+
 	s := &Server{
+		router: router,
+
 		Name:    "hamble-tcp-server",
 		Version: "tcp",
 		IP:      "0.0.0.0",
@@ -149,8 +156,20 @@ func (s *Server) Serve() {
 			continue
 		}
 
-		conn := NewConnection(tcpConn)
+		conn := NewConnection(tcpConn, s.router)
 		s.connections[conn] = struct{}{}
-		go conn.Start() // 连接开始工作
+		go func() {
+			defer func() {
+				s.connectionsLock.Lock()
+				defer s.connectionsLock.Unlock()
+
+				delete(s.connections, conn) // 结束时删除连接
+			}()
+			conn.Start() // 连接开始工作
+		}()
 	}
+}
+
+func (s *Server) RegisterHandler(id uint32, handler iface.IHandler) {
+	s.router.AddRouter(id, handler)
 }

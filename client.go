@@ -1,8 +1,8 @@
 package main
 
 import (
+	"fmt"
 	"net"
-	"strconv"
 	"time"
 )
 
@@ -14,10 +14,21 @@ func main() {
 	}
 
 	for i := 0; i < 10; i++ {
-		conn.Write([]byte("hello " + strconv.Itoa(i)))
+		_, err = conn.Write([]byte("PING "))
+		if err != nil {
+			return
+		}
+
+		buf := make([]byte, 512)
+		cnt, err := conn.Read(buf)
+		if err != nil {
+			return
+		}
+
+		fmt.Printf("receive from server: %s\n", buf[:cnt])
 		time.Sleep(time.Second)
 	}
 
-	conn.Close()
+	_ = conn.Close()
 
 }
