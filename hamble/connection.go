@@ -2,6 +2,7 @@ package hamble
 
 import (
 	"errors"
+	"github.com/dawnzzz/hamble-tcp-server/conf"
 	"github.com/dawnzzz/hamble-tcp-server/iface"
 	"github.com/dawnzzz/hamble-tcp-server/logger"
 	"io"
@@ -60,9 +61,16 @@ func (c *Connection) startRead() {
 		msg.SetData(dataBuf)
 
 		request := NewRequest(c, msg)
-		go func() {
-			c.router.DoHandler(request) // 执行 handler
-		}()
+
+		if conf.GlobalProfile.WorkerPoolSize > 0 {
+			//已经启动工作池机制，将消息交给Worker处理
+			c.router.SendMsgToTaskQueue(request)
+		} else {
+			go func() {
+				c.router.DoHandler(request) // 执行 handler
+			}()
+		}
+
 	}
 }
 

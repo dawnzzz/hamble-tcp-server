@@ -90,6 +90,9 @@ func (s *Server) Start() {
 		}
 	}()
 
+	// 开启工作池
+	s.router.StartWorkerPool()
+
 	// 开启服务
 	s.wg.Add(1)
 	go s.Serve()
