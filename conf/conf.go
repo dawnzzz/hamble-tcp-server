@@ -12,7 +12,7 @@ type Profile struct {
 	Port          int    `mapstructure:"port"`            // 服务器监听端口号
 	TcpVersion    string `mapstructure:"tcp_version"`     // 服务器版本号
 	MaxConn       int    `mapstructure:"max_conn"`        // 最大连接数
-	MaxPocketSize uint32 `mapstructure:"max_pocket_size"` // 一个客户端数据包的最大数据长度
+	MaxPacketSize uint32 `mapstructure:"max_packet_size"` // 一个客户端数据包的最大数据长度
 }
 
 var GlobalProfile *Profile
@@ -27,7 +27,7 @@ func setViperDefault() {
 	viper.SetDefault("port", 6177)
 	viper.SetDefault("tcp_version", "tcp4")
 	viper.SetDefault("max_conn", 12000)
-	viper.SetDefault("max_pocket_size", 4096)
+	viper.SetDefault("max_packet_size", 0)
 }
 
 // Reload 重新加载配置文件
