@@ -107,14 +107,13 @@ func (c *Connection) Start() {
 }
 
 func (c *Connection) Stop() {
-	if c.isClosed.Load() {
+	if !c.isClosed.CompareAndSwap(false, true) {
 		// 已经关闭，直接返回
 		return
 	}
 
 	// 关闭管道
 	close(c.msgChan)
-	c.isClosed.Store(true)
 	_ = c.conn.Close()
 
 	logger.Infof("close a connection from %s", c.RemoteAddr())
