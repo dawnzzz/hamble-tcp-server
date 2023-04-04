@@ -126,6 +126,9 @@ func (c *Connection) Start() {
 
 	c.TcpServer.GetConnManager().Add(c) // 将当前连接添加到连接管理器中
 
+	// 执行Hook函数
+	c.TcpServer.CallOnConnStart(c)
+
 	// 阻塞，直到退出
 	select {
 	case <-c.exitChan:
@@ -138,6 +141,9 @@ func (c *Connection) Stop() {
 		// 已经关闭，直接返回
 		return
 	}
+
+	// 执行Hook函数
+	c.TcpServer.CallOnConnStop(c)
 
 	// 关闭管道
 	close(c.msgChan)

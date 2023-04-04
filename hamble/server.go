@@ -22,9 +22,12 @@ type Server struct {
 	IP      string // 服务器监听地址
 	Port    int    // 服务器端口号
 
-	router iface.IRouter
+	router iface.IRouter // 路由模块
 
 	connManager iface.IConnManager // 连接管理模块
+
+	onConnStart func(connection iface.IConnection) // Hook
+	onConnStop  func(connection iface.IConnection) // Hook
 
 	ctx         context.Context
 	cancel      context.CancelFunc // 提醒Server退出
@@ -193,4 +196,24 @@ func (s *Server) GetRouter() iface.IRouter {
 
 func (s *Server) GetConnManager() iface.IConnManager {
 	return s.connManager
+}
+
+func (s *Server) SetOnConnStart(f func(conn iface.IConnection)) {
+	s.onConnStart = f
+}
+
+func (s *Server) SetOnConnStop(f func(conn iface.IConnection)) {
+	s.onConnStop = f
+}
+
+func (s *Server) CallOnConnStart(conn iface.IConnection) {
+	if s.onConnStart != nil {
+		s.onConnStart(conn)
+	}
+}
+
+func (s *Server) CallOnConnStop(conn iface.IConnection) {
+	if s.onConnStop != nil {
+		s.onConnStop(conn)
+	}
 }
