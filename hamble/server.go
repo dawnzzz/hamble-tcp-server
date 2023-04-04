@@ -24,11 +24,10 @@ type Server struct {
 
 	router iface.IRouter
 
-	connections     map[iface.IConnection]struct{} // 记录当前的连接
-	connectionsLock sync.Mutex
+	connManager iface.IConnManager // 连接管理模块
 
 	ctx         context.Context
-	cancel      context.CancelFunc
+	cancel      context.CancelFunc // 提醒Server退出
 	wg          sync.WaitGroup
 	closingChan chan struct{} // 发送退出信号
 }
@@ -48,7 +47,7 @@ func NewServer() iface.IServer {
 		IP:      conf.GlobalProfile.Host,
 		Port:    conf.GlobalProfile.Port,
 
-		connections: make(map[iface.IConnection]struct{}),
+		connManager: NewConnManager(),
 
 		ctx:         ctx,
 		cancel:      cancel,
@@ -107,6 +106,9 @@ func (s *Server) Start() {
 func (s *Server) Stop() {
 	logger.Infof("server stop")
 
+	// 退出之前关闭全部连接，实现优雅的关闭
+	s.connManager.Clear()
+
 	// 调用cancel取消
 	s.cancel()
 }
@@ -137,15 +139,6 @@ func (s *Server) Serve() {
 		}
 	}()
 
-	defer func() {
-		// 退出之前关闭全部连接，实现优雅的关闭
-		for conn := range s.connections {
-			conn.Stop()
-		}
-
-		logger.Infof("serve func is closed")
-	}()
-
 	logger.Info("start listen")
 
 	for {
@@ -162,15 +155,16 @@ func (s *Server) Serve() {
 			continue
 		}
 
-		conn := NewConnection(tcpConn, s.router)
-		s.connections[conn] = struct{}{}
+		if s.connManager.Len() >= conf.GlobalProfile.MaxConn {
+			// 超过了最大连接数，直接关闭连接
+			_ = tcpConn.Close()
+			continue
+		}
+
+		conn := NewConnection(tcpConn, s)
 		go func() {
 			defer func() {
-				s.connectionsLock.Lock()
-				defer s.connectionsLock.Unlock()
-
 				conn.Stop()
-				delete(s.connections, conn) // 结束时删除连接
 			}()
 			conn.Start() // 连接开始工作
 		}()
@@ -179,4 +173,12 @@ func (s *Server) Serve() {
 
 func (s *Server) RegisterHandler(id uint32, handler iface.IHandler) {
 	s.router.AddRouter(id, handler)
+}
+
+func (s *Server) GetRouter() iface.IRouter {
+	return s.router
+}
+
+func (s *Server) GetConnManager() iface.IConnManager {
+	return s.connManager
 }

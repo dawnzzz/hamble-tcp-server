@@ -6,4 +6,6 @@ type IServer interface {
 	Stop()                                       // 结束服务器
 	Serve()                                      // 开始服务
 	RegisterHandler(id uint32, handler IHandler) // 注册Handler
+	GetRouter() IRouter                          // 获取Router
+	GetConnManager() IConnManager                // 获取ConnManager
 }

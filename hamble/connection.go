@@ -12,8 +12,9 @@ import (
 
 // Connection 与客户端的连接，实现了iface.IConnection接口
 type Connection struct {
-	router iface.IRouter
-	conn   *net.TCPConn // 原始 socket TCP 连接
+	TcpServer iface.IServer
+
+	conn *net.TCPConn // 原始 socket TCP 连接
 
 	msgChan chan iface.IMessage // 服务器待发送的消息放在这里
 
@@ -21,10 +22,10 @@ type Connection struct {
 	isClosed atomic.Bool
 }
 
-func NewConnection(conn *net.TCPConn, router iface.IRouter) iface.IConnection {
+func NewConnection(conn *net.TCPConn, server iface.IServer) iface.IConnection {
 	return &Connection{
-		conn:   conn,
-		router: router,
+		TcpServer: server,
+		conn:      conn,
 
 		msgChan:  make(chan iface.IMessage),
 		exitChan: make(chan struct{}, 1),
@@ -64,10 +65,10 @@ func (c *Connection) startRead() {
 
 		if conf.GlobalProfile.WorkerPoolSize > 0 {
 			//已经启动工作池机制，将消息交给Worker处理
-			c.router.SendMsgToTaskQueue(request)
+			c.TcpServer.GetRouter().SendMsgToTaskQueue(request)
 		} else {
 			go func() {
-				c.router.DoHandler(request) // 执行 handler
+				c.TcpServer.GetRouter().DoHandler(request) // 执行 handler
 			}()
 		}
 
@@ -96,8 +97,12 @@ func (c *Connection) startWrite() {
 func (c *Connection) Start() {
 	logger.Infof("accept a connection from %s", c.RemoteAddr())
 
+	c.TcpServer.GetConnManager().Add(c)
+
 	go c.startRead()
 	go c.startWrite()
+
+	c.TcpServer.GetConnManager().Add(c) // 将当前连接添加到连接管理器中
 
 	// 阻塞，直到退出
 	select {
@@ -115,6 +120,7 @@ func (c *Connection) Stop() {
 	// 关闭管道
 	close(c.msgChan)
 	_ = c.conn.Close()
+	c.TcpServer.GetConnManager().Remove(c)
 
 	logger.Infof("close a connection from %s", c.RemoteAddr())
 }
