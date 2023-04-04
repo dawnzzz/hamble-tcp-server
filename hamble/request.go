@@ -2,22 +2,21 @@ package hamble
 
 import (
 	"github.com/dawnzzz/hamble-tcp-server/iface"
-	"net"
 )
 
 type Request struct {
-	conn *net.TCPConn
+	conn iface.IConnection
 	data iface.IMessage
 }
 
-func NewRequest(conn *net.TCPConn, message iface.IMessage) iface.IRequest {
+func NewRequest(conn iface.IConnection, message iface.IMessage) iface.IRequest {
 	return &Request{
 		conn: conn,
 		data: message,
 	}
 }
 
-func (req *Request) GetConn() *net.TCPConn {
+func (req *Request) GetConnection() iface.IConnection {
 	return req.conn
 }
 

@@ -1,11 +1,13 @@
 package hamble
 
 import (
+	"errors"
 	"github.com/dawnzzz/hamble-tcp-server/iface"
 	"github.com/dawnzzz/hamble-tcp-server/logger"
 	"io"
 	"net"
 	"sync"
+	"sync/atomic"
 )
 
 // Connection 与客户端的连接，实现了iface.IConnection接口
@@ -13,7 +15,8 @@ type Connection struct {
 	router iface.IRouter
 	conn   *net.TCPConn // 原始 socket TCP 连接
 
-	wg sync.WaitGroup
+	wg       sync.WaitGroup
+	isClosed atomic.Bool
 }
 
 func NewConnection(conn *net.TCPConn, router iface.IRouter) iface.IConnection {
@@ -25,6 +28,10 @@ func NewConnection(conn *net.TCPConn, router iface.IRouter) iface.IConnection {
 
 func (c *Connection) startRead() {
 	for {
+		if c.isClosed.Load() {
+			return
+		}
+
 		dataPack := NewDataPack()
 
 		buf := make([]byte, dataPack.GetHeadLen())
@@ -48,7 +55,7 @@ func (c *Connection) startRead() {
 		}
 		msg.SetData(dataBuf)
 
-		request := NewRequest(c.GetConn(), msg)
+		request := NewRequest(c, msg)
 		// 选择handler
 		handler := c.router.GetHandler(msg.GetMsgID())
 		go func() {
@@ -70,6 +77,7 @@ func (c *Connection) Start() {
 }
 
 func (c *Connection) Stop() {
+	c.isClosed.Store(true)
 	_ = c.conn.Close()
 
 	logger.Infof("close a connection from %s", c.RemoteAddr())
@@ -81,4 +89,28 @@ func (c *Connection) GetConn() *net.TCPConn {
 
 func (c *Connection) RemoteAddr() string {
 	return c.conn.RemoteAddr().String()
+}
+
+func (c *Connection) SendMsg(msgID uint32, data []byte) error {
+	if c.isClosed.Load() {
+		// 关闭直接返回
+		return errors.New("connection closed when send msg")
+	}
+
+	// 将消息封包，发送
+	dp := NewDataPack()
+	msg := NewMessage(msgID, data)
+	packet, err := dp.Pack(msg)
+	if err != nil {
+		return err
+	}
+
+	if _, err = c.conn.Write(packet); err != nil {
+		// 发送失败，关闭连接
+		c.Stop()
+
+		return err
+	}
+
+	return nil
 }

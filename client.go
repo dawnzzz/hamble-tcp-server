@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/dawnzzz/hamble-tcp-server/hamble"
 	"github.com/dawnzzz/hamble-tcp-server/iface"
+	"io"
 	"net"
 	"time"
 )
@@ -35,13 +36,26 @@ func main() {
 			return
 		}
 
-		buf := make([]byte, 512)
-		cnt, err := conn.Read(buf)
+		// 获取head
+		buf := make([]byte, 8)
+		_, err = conn.Read(buf)
+		if err != nil {
+			return
+		}
+		// 解包
+		receivedMsg, err := dp.Unpack(buf)
 		if err != nil {
 			return
 		}
 
-		fmt.Printf("receive from server: %s\n", buf[:cnt])
+		// 获取数据
+		dataBuf := make([]byte, receivedMsg.GetDataLen())
+		_, err = io.ReadFull(conn, dataBuf)
+		if err != nil {
+			return
+		}
+
+		fmt.Printf("receive from server: %s\n", dataBuf)
 		time.Sleep(time.Second)
 	}
 

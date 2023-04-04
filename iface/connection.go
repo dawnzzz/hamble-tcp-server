@@ -8,4 +8,5 @@ type IConnection interface {
 	Stop()                 // 停止连接，结束当前连接状态M
 	GetConn() *net.TCPConn // 获取原始socket TCP连接
 	RemoteAddr() string
+	SendMsg(msgID uint32, data []byte) error // 直接将Message数据发送数据给远程的TCP客户端
 }
