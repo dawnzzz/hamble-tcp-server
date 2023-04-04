@@ -12,7 +12,7 @@ type PingHandler struct {
 
 func (ph *PingHandler) Handle(request iface.IRequest) {
 	fmt.Printf("resevied request: %s\n", request.GetData())
-	_ = request.GetConnection().SendMsg(request.GetMsgID(), []byte("PONG"))
+	_ = request.GetConnection().SendBufMsg(request.GetMsgID(), []byte("PONG"))
 }
 
 type EchoHandler struct {

@@ -16,7 +16,8 @@ type Connection struct {
 
 	conn *net.TCPConn // 原始 socket TCP 连接
 
-	msgChan chan iface.IMessage // 服务器待发送的消息放在这里
+	msgChan    chan iface.IMessage // 服务器待发送的消息放在这里
+	msgBufChan chan iface.IMessage // 带缓冲区的msgChan
 
 	exitChan chan struct{}
 	isClosed atomic.Bool
@@ -27,8 +28,9 @@ func NewConnection(conn *net.TCPConn, server iface.IServer) iface.IConnection {
 		TcpServer: server,
 		conn:      conn,
 
-		msgChan:  make(chan iface.IMessage),
-		exitChan: make(chan struct{}, 1),
+		msgChan:    make(chan iface.IMessage),
+		msgBufChan: make(chan iface.IMessage, 1024),
+		exitChan:   make(chan struct{}, 1),
 	}
 }
 
@@ -94,6 +96,25 @@ func (c *Connection) startWrite() {
 	}
 }
 
+func (c *Connection) startBufWrite() {
+	// 将消息封包，发送
+	dp := NewDataPack()
+
+	for msg := range c.msgBufChan {
+		packet, err := dp.Pack(msg)
+		if err != nil {
+			c.exitChan <- struct{}{}
+			return
+		}
+
+		if _, err = c.conn.Write(packet); err != nil {
+			// 发送失败，关闭连接
+			c.exitChan <- struct{}{}
+			return
+		}
+	}
+}
+
 func (c *Connection) Start() {
 	logger.Infof("accept a connection from %s", c.RemoteAddr())
 
@@ -101,6 +122,7 @@ func (c *Connection) Start() {
 
 	go c.startRead()
 	go c.startWrite()
+	go c.startBufWrite()
 
 	c.TcpServer.GetConnManager().Add(c) // 将当前连接添加到连接管理器中
 
@@ -119,6 +141,7 @@ func (c *Connection) Stop() {
 
 	// 关闭管道
 	close(c.msgChan)
+	close(c.msgBufChan)
 	_ = c.conn.Close()
 	c.TcpServer.GetConnManager().Remove(c)
 
@@ -144,6 +167,21 @@ func (c *Connection) SendMsg(msgID uint32, data []byte) error {
 
 	// 将消息推入c.msgChan，等待发送
 	c.msgChan <- msg
+
+	return nil
+}
+
+func (c *Connection) SendBufMsg(msgID uint32, data []byte) error {
+	if c.isClosed.Load() {
+		// 关闭直接返回
+		c.exitChan <- struct{}{}
+		return errors.New("connection closed when send msg")
+	}
+
+	msg := NewMessage(msgID, data)
+
+	// 将消息推入c.msgChan，等待发送
+	c.msgBufChan <- msg
 
 	return nil
 }
