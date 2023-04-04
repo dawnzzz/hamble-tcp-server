@@ -62,8 +62,20 @@ func NewServer() iface.IServer {
 	return s
 }
 
+const banner = `
+ ___  ___  ________  _____ ______   ________  ___       _______      
+|\  \|\  \|\   __  \|\   _ \  _   \|\   __  \|\  \     |\  ___ \     
+\ \  \\\  \ \  \|\  \ \  \\\__\ \  \ \  \|\ /\ \  \    \ \   __/|    
+ \ \   __  \ \   __  \ \  \\|__| \  \ \   __  \ \  \    \ \  \_|/__  
+  \ \  \ \  \ \  \ \  \ \  \    \ \  \ \  \|\  \ \  \____\ \  \_|\ \ 
+   \ \__\ \__\ \__\ \__\ \__\    \ \__\ \_______\ \_______\ \_______\
+    \|__|\|__|\|__|\|__|\|__|     \|__|\|_______|\|_______|\|_______|`
+
+const url = "https://github.com/dawnzzz/hamble-tcp-server"
+
 // Start 开启hamble TCP 服务器，当调用此函数时，当前协程会阻塞住进行TCP服务
 func (s *Server) Start() {
+	fmt.Printf("%s\n\npowered by %s\n\n", banner, url)
 	logger.Infof("server start")
 
 	sigChan := make(chan os.Signal, 1)
