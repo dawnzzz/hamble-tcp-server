@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/dawnzzz/hamble-tcp-server/conf"
 	"github.com/dawnzzz/hamble-tcp-server/iface"
 	"github.com/dawnzzz/hamble-tcp-server/logger"
 	"github.com/sirupsen/logrus"
@@ -33,6 +34,8 @@ type Server struct {
 }
 
 func NewServer() iface.IServer {
+	conf.Reload() // 加载配置文件
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	router := newRouter()
@@ -40,10 +43,10 @@ func NewServer() iface.IServer {
 	s := &Server{
 		router: router,
 
-		Name:    "hamble-tcp-server",
-		Version: "tcp",
-		IP:      "0.0.0.0",
-		Port:    6177,
+		Name:    conf.GlobalProfile.Name,
+		Version: conf.GlobalProfile.TcpVersion,
+		IP:      conf.GlobalProfile.Host,
+		Port:    conf.GlobalProfile.Port,
 
 		connections: make(map[iface.IConnection]struct{}),
 
@@ -62,7 +65,7 @@ func NewServer() iface.IServer {
 
 // Start 开启hamble TCP 服务器，当调用此函数时，当前协程会阻塞住进行TCP服务
 func (s *Server) Start() {
-	logger.Infof("started")
+	logger.Infof("server start")
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
@@ -94,12 +97,12 @@ func (s *Server) Start() {
 	// 等待 s.Server 退出
 	s.wg.Wait()
 
-	logger.Info("exited")
+	logger.Info("server exited")
 }
 
 // Stop 停止 TCP 服务器
 func (s *Server) Stop() {
-	logger.Infof("stop")
+	logger.Infof("server stop")
 
 	// 调用cancel取消
 	s.cancel()
@@ -137,7 +140,7 @@ func (s *Server) Serve() {
 			conn.Stop()
 		}
 
-		logger.Infof("serve is closed")
+		logger.Infof("serve func is closed")
 	}()
 
 	logger.Info("start listen")

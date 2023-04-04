@@ -1,0 +1,6 @@
+name: DemoHambleServer
+host: 127.0.0.1
+post: 6177
+tcp_version: tcp4 # tcp or tcp4 or tcp6
+max_conn: 12000
+max_pocket_size: 4096
