@@ -2,7 +2,7 @@ package logger
 
 import "github.com/sirupsen/logrus"
 
-var logger = logrus.New()
+var logger = logrus.NewEntry(logrus.New())
 
 func Debug(args ...interface{}) {
 	logger.Info(args...)
@@ -42,4 +42,8 @@ func Errorf(format string, args ...interface{}) {
 
 func Fatalf(format string, args ...interface{}) {
 	logger.Fatalf(format, args...)
+}
+
+func WithFields(fields logrus.Fields) {
+	logger = logger.WithFields(fields)
 }
