@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/dawnzzz/hamble-tcp-server/hamble"
+	"github.com/dawnzzz/hamble-tcp-server/iface"
 	"net"
 	"time"
 )
@@ -13,8 +15,22 @@ func main() {
 		return
 	}
 
+	dp := hamble.NewDataPack()
 	for i := 0; i < 10; i++ {
-		_, err = conn.Write([]byte("PING "))
+		var msg iface.IMessage
+
+		if i%2 == 0 {
+			msg = hamble.NewMessage(0, []byte("PING"))
+		} else {
+			msg = hamble.NewMessage(1, []byte("Hello"))
+		}
+
+		data, err := dp.Pack(msg)
+		if err != nil {
+			return
+		}
+
+		_, err = conn.Write(data)
 		if err != nil {
 			return
 		}

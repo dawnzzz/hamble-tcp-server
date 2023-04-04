@@ -6,4 +6,5 @@ import "net"
 type IRequest interface {
 	GetConn() *net.TCPConn
 	GetData() []byte
+	GetMsgID() uint32
 }

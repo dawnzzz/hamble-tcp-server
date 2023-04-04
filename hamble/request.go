@@ -7,13 +7,13 @@ import (
 
 type Request struct {
 	conn *net.TCPConn
-	data []byte
+	data iface.IMessage
 }
 
-func NewRequest(conn *net.TCPConn, data []byte) iface.IRequest {
+func NewRequest(conn *net.TCPConn, message iface.IMessage) iface.IRequest {
 	return &Request{
 		conn: conn,
-		data: data,
+		data: message,
 	}
 }
 
@@ -22,5 +22,9 @@ func (req *Request) GetConn() *net.TCPConn {
 }
 
 func (req *Request) GetData() []byte {
-	return req.data
+	return req.data.GetData()
+}
+
+func (req *Request) GetMsgID() uint32 {
+	return req.data.GetMsgID()
 }

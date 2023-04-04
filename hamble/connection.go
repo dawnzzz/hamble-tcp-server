@@ -3,6 +3,7 @@ package hamble
 import (
 	"github.com/dawnzzz/hamble-tcp-server/iface"
 	"github.com/dawnzzz/hamble-tcp-server/logger"
+	"io"
 	"net"
 	"sync"
 )
@@ -24,16 +25,32 @@ func NewConnection(conn *net.TCPConn, router iface.IRouter) iface.IConnection {
 
 func (c *Connection) startRead() {
 	for {
-		buf := make([]byte, 512)
-		cnt, err := c.conn.Read(buf)
+		dataPack := NewDataPack()
+
+		buf := make([]byte, dataPack.GetHeadLen())
+		_, err := c.conn.Read(buf)
 		if err != nil {
 			c.Stop()
 			return
 		}
 
-		request := NewRequest(c.GetConn(), buf[:cnt])
+		// 解包
+		msg, err := dataPack.Unpack(buf)
+		if err != nil {
+			c.Stop()
+			return
+		}
+		dataBuf := make([]byte, msg.GetDataLen())
+		_, err = io.ReadFull(c.conn, dataBuf)
+		if err != nil {
+			c.Stop()
+			return
+		}
+		msg.SetData(dataBuf)
+
+		request := NewRequest(c.GetConn(), msg)
 		// 选择handler
-		handler := c.router.GetHandler(0) // TODO:在请求中解析出ID
+		handler := c.router.GetHandler(msg.GetMsgID())
 		go func() {
 			c.wg.Add(1)
 			defer c.wg.Done()
