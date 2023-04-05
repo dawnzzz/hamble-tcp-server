@@ -6,6 +6,15 @@ import (
 	"time"
 )
 
+// CheckerOption 用户可以自定义的心跳检测机制选项
+type CheckerOption struct {
+	Interval         time.Duration
+	OnRemoteNotAlive iface.OnRemoteNotAlive
+	HeartbeatMsgFunc iface.HeartBeatMsgFunc // 用户自定义的心跳消息生成函数
+	MsgID            uint32                 // 心跳消息的消息id
+	Handler          iface.IHandler
+}
+
 // Checker  心跳检测器
 type Checker struct {
 	interval         time.Duration          // 心跳检查的时间间隔

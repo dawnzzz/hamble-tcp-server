@@ -237,6 +237,29 @@ func (s *Server) StartHeartbeat(interval time.Duration) {
 	s.RegisterHandler(iface.DefaultHeartbeatMsgID, &heartbeat.DefaultHandler{})
 }
 
+func (s *Server) StartHeartbeatWithOption(option heartbeat.CheckerOption) {
+	if option.Interval <= 0 {
+		logger.Fatal("heartbeat checker interval must > 0")
+		return
+	}
+
+	s.checker = heartbeat.NewHearBeatChecker(option.Interval)
+
+	if option.OnRemoteNotAlive != nil {
+		s.checker.SetOnRemoteNotAlive(option.OnRemoteNotAlive)
+	}
+
+	if option.HeartbeatMsgFunc != nil {
+		s.checker.SetOnRemoteNotAlive(option.OnRemoteNotAlive)
+	}
+
+	if option.Handler != nil {
+		s.RegisterHandler(option.MsgID, option.Handler)
+	} else {
+		s.RegisterHandler(iface.DefaultHeartbeatMsgID, &heartbeat.DefaultHandler{})
+	}
+}
+
 func (s *Server) GetHeartBeatChecker() iface.IHeartBeatChecker {
 	return s.checker
 }
