@@ -10,4 +10,8 @@ type IConnection interface {
 	RemoteAddr() string
 	SendMsg(msgID uint32, data []byte) error    // 直接将Message数据发送数据给远程的TCP客户端
 	SendBufMsg(msgID uint32, data []byte) error // 将Message发送到有缓冲区的通道中等待发送
+
+	SetProperty(key string, value interface{}) // 设置连接属性
+	GetProperty(key string) interface{}        // 获取连接属性
+	RemoveProperty(key string)                 // 移除连接属性
 }

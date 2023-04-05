@@ -7,6 +7,7 @@ import (
 	"github.com/dawnzzz/hamble-tcp-server/logger"
 	"io"
 	"net"
+	"sync"
 	"sync/atomic"
 )
 
@@ -21,6 +22,9 @@ type Connection struct {
 
 	exitChan chan struct{}
 	isClosed atomic.Bool
+
+	properties     map[string]interface{} //	记录连接属性
+	propertiesLock sync.Mutex             // 保证连接属性的互斥访问
 }
 
 func NewConnection(conn *net.TCPConn, server iface.IServer) iface.IConnection {
@@ -190,4 +194,42 @@ func (c *Connection) SendBufMsg(msgID uint32, data []byte) error {
 	c.msgBufChan <- msg
 
 	return nil
+}
+
+func (c *Connection) SetProperty(key string, value interface{}) {
+	c.propertiesLock.Lock()
+	defer c.propertiesLock.Unlock()
+
+	if c.properties == nil {
+		c.properties = make(map[string]interface{}) // 延迟初始化
+	}
+
+	c.properties[key] = value
+}
+
+func (c *Connection) GetProperty(key string) interface{} {
+	c.propertiesLock.Lock()
+	defer c.propertiesLock.Unlock()
+
+	if c.properties == nil {
+		return nil
+	}
+
+	value, exist := c.properties[key]
+	if !exist {
+		return nil
+	}
+
+	return value
+}
+
+func (c *Connection) RemoveProperty(key string) {
+	c.propertiesLock.Lock()
+	defer c.propertiesLock.Unlock()
+
+	if c.properties == nil {
+		return
+	}
+
+	delete(c.properties, key)
 }
