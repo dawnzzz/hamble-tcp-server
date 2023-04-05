@@ -88,6 +88,7 @@ func (s *Server) Start() {
 	}
 
 	fmt.Printf("%s\n\npowered by %s\n\n", banner, url)
+	conf.PrintGlobalProfile()
 	logger.Infof("server start")
 
 	sigChan := make(chan os.Signal, 1)

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	"os"
+	"reflect"
+	"strings"
 )
 
 type Profile struct {
@@ -17,6 +19,7 @@ type Profile struct {
 	MaxWorkerTaskLen int    `mapstructure:"max_worker_task_len"` // Worker 任务队列长度
 	MaxMsgChanLen    int    `mapstructure:"max_msg_chan_len"`    // 连接发送队列的缓冲区长度
 	LogFileName      string `mapstructure:"log_file_name"`       // 日志文件，为空则不保存
+	MaxHeartbeatTime int    `mapstructure:"max_heartbeat_time"`  // 发送心跳信息的最大时间间隔
 }
 
 var GlobalProfile *Profile
@@ -36,6 +39,7 @@ func setViperDefault() {
 	viper.SetDefault("max_worker_task_len", 1024)
 	viper.SetDefault("max_msg_chan_len", 1024)
 	viper.SetDefault("log_file_name", "")
+	viper.SetDefault("max_heartbeat_time", 0)
 }
 
 // Reload 重新加载配置文件
@@ -54,4 +58,25 @@ func Reload() {
 		fmt.Print(err)
 		os.Exit(1)
 	}
+}
+
+func PrintGlobalProfile() {
+	globalProfileValue := reflect.ValueOf(GlobalProfile).Elem()
+	globalProfileType := reflect.TypeOf(*GlobalProfile)
+
+	fmt.Println(`
+======================================================
+*                    GlobalProfile                   *
+======================================================`)
+
+	builder := strings.Builder{}
+	for i := 0; i < globalProfileValue.NumField(); i++ {
+		name := globalProfileType.Field(i).Name
+		value := globalProfileValue.Field(i).Interface()
+
+		builder.WriteString(fmt.Sprintf("    %v:%v\n", name, value))
+	}
+
+	fmt.Print(builder.String())
+	fmt.Println("======================================================")
 }
