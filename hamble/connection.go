@@ -54,7 +54,7 @@ func (c *Connection) startRead() {
 			return
 		}
 
-		dataPack := NewDataPack()
+		dataPack := c.TcpServer.GetDataPack()
 
 		buf := make([]byte, dataPack.GetHeadLen())
 		_, err := c.conn.Read(buf)

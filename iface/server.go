@@ -16,4 +16,6 @@ type IServer interface {
 	CallOnConnStop(conn IConnection)             // 调用连接结束时的Hook函数
 	GetHeartBeatChecker() IHeartBeatChecker      // 获取心跳检测器
 	StartHeartbeat(interval time.Duration)       // 开始心跳检测
+	GetDataPack() IDataPack                      // 获取封包/解包方式
+	SetDataPack(dataPack IDataPack)              // 设置封包/解包方式
 }

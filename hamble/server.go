@@ -24,14 +24,15 @@ type Server struct {
 	IP      string // 服务器监听地址
 	Port    int    // 服务器端口号
 
-	router iface.IRouter // 路由模块
+	dataPack iface.IDataPack // 封包解包方式
+	router   iface.IRouter   // 路由模块
 
 	connManager iface.IConnManager // 连接管理模块
 
 	onConnStart func(connection iface.IConnection) // Hook
 	onConnStop  func(connection iface.IConnection) // Hook
 
-	checker iface.IHeartBeatChecker
+	checker iface.IHeartBeatChecker // 心跳检测
 
 	ctx         context.Context
 	cancel      context.CancelFunc // 提醒Server退出
@@ -54,6 +55,7 @@ func NewServer() iface.IServer {
 		IP:      conf.GlobalProfile.Host,
 		Port:    conf.GlobalProfile.Port,
 
+		dataPack:    NewDataPack(),
 		connManager: NewConnManager(),
 
 		ctx:         ctx,
@@ -262,4 +264,16 @@ func (s *Server) StartHeartbeatWithOption(option heartbeat.CheckerOption) {
 
 func (s *Server) GetHeartBeatChecker() iface.IHeartBeatChecker {
 	return s.checker
+}
+
+func (s *Server) GetDataPack() iface.IDataPack {
+	return s.dataPack
+}
+
+func (s *Server) SetDataPack(dataPack iface.IDataPack) {
+	if dataPack == nil {
+		return
+	}
+
+	s.dataPack = dataPack
 }
