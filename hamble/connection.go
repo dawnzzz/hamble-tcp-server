@@ -9,6 +9,7 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // Connection 与客户端的连接，实现了iface.IConnection接口
@@ -25,6 +26,9 @@ type Connection struct {
 
 	properties     map[string]interface{} //	记录连接属性
 	propertiesLock sync.Mutex             // 保证连接属性的互斥访问
+
+	heartbeatChecker iface.IHeartBeatChecker
+	lastAliveTime    time.Time // 上一次收到消息的时间，用于在心跳检测中检查是否存活
 }
 
 func NewConnection(conn *net.TCPConn, server iface.IServer) iface.IConnection {
@@ -35,7 +39,13 @@ func NewConnection(conn *net.TCPConn, server iface.IServer) iface.IConnection {
 		msgChan:    make(chan iface.IMessage),
 		msgBufChan: make(chan iface.IMessage, conf.GlobalProfile.MaxMsgChanLen),
 		exitChan:   make(chan struct{}, 1),
+
+		lastAliveTime: time.Now(),
 	}
+}
+
+func (c *Connection) updateLastAliveTime(newTime time.Time) {
+	c.lastAliveTime = newTime
 }
 
 func (c *Connection) startRead() {
@@ -66,6 +76,9 @@ func (c *Connection) startRead() {
 			return
 		}
 		msg.SetData(dataBuf)
+
+		// 记录收到消息的时间
+		c.updateLastAliveTime(time.Now())
 
 		request := NewRequest(c, msg)
 
@@ -128,6 +141,14 @@ func (c *Connection) Start() {
 	go c.startWrite()
 	go c.startBufWrite()
 
+	if c.TcpServer.GetHeartBeatChecker() != nil {
+		// 开启心跳检测
+		heartbeatChecker := c.TcpServer.GetHeartBeatChecker().Clone()
+		heartbeatChecker.BindConn(c)
+		c.heartbeatChecker = heartbeatChecker
+		c.heartbeatChecker.Start()
+	}
+
 	c.TcpServer.GetConnManager().Add(c) // 将当前连接添加到连接管理器中
 
 	// 执行Hook函数
@@ -154,6 +175,7 @@ func (c *Connection) Stop() {
 	close(c.msgBufChan)
 	_ = c.conn.Close()
 	c.TcpServer.GetConnManager().Remove(c)
+	c.heartbeatChecker.Stop()
 
 	logger.Infof("close a connection from %s", c.RemoteAddr())
 }
@@ -232,4 +254,13 @@ func (c *Connection) RemoveProperty(key string) {
 	}
 
 	delete(c.properties, key)
+}
+
+func (c *Connection) IsAlive() bool {
+	if c.isClosed.Load() {
+		// 连接已经关闭
+		return false
+	}
+
+	return conf.GlobalProfile.MaxHeartbeatTime <= 0 || time.Now().Before(c.lastAliveTime.Add(conf.GlobalProfile.GetMaxHeartbeatTime()))
 }

@@ -58,7 +58,7 @@ func main() {
 		fmt.Printf("receive from server: %s\n", dataBuf)
 		time.Sleep(time.Second)
 	}
-
+	time.Sleep(20 * time.Second)
 	_ = conn.Close()
 
 }

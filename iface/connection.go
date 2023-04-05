@@ -14,4 +14,6 @@ type IConnection interface {
 	SetProperty(key string, value interface{}) // 设置连接属性
 	GetProperty(key string) interface{}        // 获取连接属性
 	RemoveProperty(key string)                 // 移除连接属性
+
+	IsAlive() bool // 检测连接是否存活
 }

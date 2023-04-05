@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/dawnzzz/hamble-tcp-server/hamble"
 	"github.com/dawnzzz/hamble-tcp-server/iface"
+	"time"
 )
 
 type PingHandler struct {
@@ -28,5 +29,7 @@ func main() {
 	s := hamble.NewServer()
 	s.RegisterHandler(0, &PingHandler{})
 	s.RegisterHandler(1, &EchoHandler{})
+	s.StartHeartbeat(5 * time.Second)
 	s.Start()
+
 }

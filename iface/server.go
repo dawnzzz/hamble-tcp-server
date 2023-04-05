@@ -1,5 +1,7 @@
 package iface
 
+import "time"
+
 // IServer TCP 服务器
 type IServer interface {
 	Start()                                      // 开启服务器
@@ -12,4 +14,6 @@ type IServer interface {
 	SetOnConnStop(func(conn IConnection))        // 设置连接结束时的Hook函数
 	CallOnConnStart(conn IConnection)            // 调用连接创建时的Hook函数
 	CallOnConnStop(conn IConnection)             // 调用连接结束时的Hook函数
+	GetHeartBeatChecker() IHeartBeatChecker      // 获取心跳检测器
+	StartHeartbeat(interval time.Duration)       // 开始心跳检测
 }

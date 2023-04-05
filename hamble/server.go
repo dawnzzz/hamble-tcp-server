@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dawnzzz/hamble-tcp-server/conf"
+	"github.com/dawnzzz/hamble-tcp-server/hamble/heartbeat"
 	"github.com/dawnzzz/hamble-tcp-server/iface"
 	"github.com/dawnzzz/hamble-tcp-server/logger"
 	"github.com/sirupsen/logrus"
@@ -13,6 +14,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 )
 
 // Server TCP服务器，实现了iface.IServer接口
@@ -28,6 +30,8 @@ type Server struct {
 
 	onConnStart func(connection iface.IConnection) // Hook
 	onConnStop  func(connection iface.IConnection) // Hook
+
+	checker iface.IHeartBeatChecker
 
 	ctx         context.Context
 	cancel      context.CancelFunc // 提醒Server退出
@@ -226,4 +230,13 @@ func (s *Server) CallOnConnStop(conn iface.IConnection) {
 	if s.onConnStop != nil {
 		s.onConnStop(conn)
 	}
+}
+
+func (s *Server) StartHeartbeat(interval time.Duration) {
+	s.checker = heartbeat.NewHearBeatChecker(interval)
+	s.RegisterHandler(iface.DefaultHeartbeatMsgID, &heartbeat.DefaultHandler{})
+}
+
+func (s *Server) GetHeartBeatChecker() iface.IHeartBeatChecker {
+	return s.checker
 }
