@@ -78,6 +78,15 @@ const url = "https://github.com/dawnzzz/hamble-tcp-server"
 
 // Start 开启hamble TCP 服务器，当调用此函数时，当前协程会阻塞住进行TCP服务
 func (s *Server) Start() {
+	if conf.GlobalProfile.LogFileName != "" {
+		logFile, err := os.OpenFile(conf.GlobalProfile.LogFileName, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
+		if err != nil {
+			logger.Error("open log file [%s] err: %v", conf.GlobalProfile.LogFileName, err.Error())
+		} else {
+			logger.SetMultiOutPut(logFile)
+		}
+	}
+
 	fmt.Printf("%s\n\npowered by %s\n\n", banner, url)
 	logger.Infof("server start")
 

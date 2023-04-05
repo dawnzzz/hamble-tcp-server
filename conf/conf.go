@@ -16,6 +16,7 @@ type Profile struct {
 	WorkerPoolSize   int    `mapstructure:"worker_pool_size"`    // Worker 数量
 	MaxWorkerTaskLen int    `mapstructure:"max_worker_task_len"` // Worker 任务队列长度
 	MaxMsgChanLen    int    `mapstructure:"max_msg_chan_len"`    // 连接发送队列的缓冲区长度
+	LogFileName      string `mapstructure:"log_file_name"`       // 日志文件，为空则不保存
 }
 
 var GlobalProfile *Profile
@@ -34,6 +35,7 @@ func setViperDefault() {
 	viper.SetDefault("worker_pool_size", 10)
 	viper.SetDefault("max_worker_task_len", 1024)
 	viper.SetDefault("max_msg_chan_len", 1024)
+	viper.SetDefault("log_file_name", "")
 }
 
 // Reload 重新加载配置文件

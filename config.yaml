@@ -6,3 +6,5 @@ max_conn: 12000
 max_packet_size: 4096
 worker_pool_size: 10
 max_msg_chan_len: 1024
+
+log_file_name: hamble.log
