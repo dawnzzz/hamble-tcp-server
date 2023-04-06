@@ -21,6 +21,8 @@ type Profile struct {
 	MaxMsgChanLen    int    `mapstructure:"max_msg_chan_len"`    // 连接发送队列的缓冲区长度
 	LogFileName      string `mapstructure:"log_file_name"`       // 日志文件，为空则不保存
 	MaxHeartbeatTime int    `mapstructure:"max_heartbeat_time"`  // 心跳检测的最大时间间隔
+	CrtFileName      string `mapstructure:"crt_file_name"`
+	KeyFileName      string `mapstructure:"key_file_name"`
 }
 
 func (profile *Profile) GetMaxHeartbeatTime() time.Duration {
@@ -45,6 +47,8 @@ func setViperDefault() {
 	viper.SetDefault("max_msg_chan_len", 1024)
 	viper.SetDefault("log_file_name", "")
 	viper.SetDefault("max_heartbeat_time", 10)
+	viper.SetDefault("crt_file_name", "crt.pem")
+	viper.SetDefault("key_file_name", "key.pem")
 }
 
 // Reload 重新加载配置文件

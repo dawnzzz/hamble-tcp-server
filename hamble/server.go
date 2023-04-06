@@ -2,12 +2,15 @@ package hamble
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"github.com/dawnzzz/hamble-tcp-server/conf"
 	"github.com/dawnzzz/hamble-tcp-server/hamble/heartbeat"
 	"github.com/dawnzzz/hamble-tcp-server/iface"
 	"github.com/dawnzzz/hamble-tcp-server/logger"
+	"github.com/dawnzzz/hamble-tcp-server/utils"
 	"github.com/sirupsen/logrus"
 	"net"
 	"os"
@@ -29,6 +32,8 @@ type Server struct {
 	cancel      context.CancelFunc // 提醒Server退出
 	wg          sync.WaitGroup
 	closingChan chan struct{} // 发送退出信号
+
+	useTLS bool
 }
 
 func NewServer() iface.IServer {
@@ -63,6 +68,14 @@ func NewServer() iface.IServer {
 	return s
 }
 
+func NewTLSServer() iface.IServer {
+	iServer := NewServer()
+	s, _ := iServer.(*Server)
+	s.useTLS = true
+
+	return s
+}
+
 const banner = `
  ___  ___  ________  _____ ______   ________  ___       _______      
 |\  \|\  \|\   __  \|\   _ \  _   \|\   __  \|\  \     |\  ___ \     
@@ -87,6 +100,11 @@ func (s *Server) Start() {
 
 	fmt.Printf("%s\n\npowered by %s\n\n", banner, url)
 	conf.PrintGlobalProfile()
+
+	if s.useTLS {
+		logger.Info("!! Attention, Server is using TLS !! ")
+	}
+
 	logger.Infof("server start")
 
 	sigChan := make(chan os.Signal, 1)
@@ -139,17 +157,53 @@ func (s *Server) Stop() {
 func (s *Server) Serve() {
 	defer s.wg.Done() // 通知主线程退出
 
-	// 开始正常的服务
-	addr, err := net.ResolveTCPAddr(s.Version, fmt.Sprintf("%s:%d", s.IP, s.Port))
-	if err != nil {
-		logger.Error("resolve tcp addr err,", err)
-		return
-	}
+	var listener net.Listener
+	if s.useTLS {
+		// 使用 TLS 加密
 
-	listener, err := net.ListenTCP(s.Version, addr)
-	if err != nil {
-		logger.Error("listen tcp err,", err)
-		return
+		// 必要时生成私钥和证书文件
+		if !utils.IsFileExist(conf.GlobalProfile.CrtFileName) && !utils.IsFileExist(conf.GlobalProfile.KeyFileName) {
+			err := utils.GenerateCrtAndKeyFile(conf.GlobalProfile.CrtFileName, conf.GlobalProfile.KeyFileName)
+			if err != nil {
+				logger.Errorf("create crt and private key err: %v", err.Error())
+				return
+			}
+		}
+
+		if !utils.IsFileExist(conf.GlobalProfile.CrtFileName) || !utils.IsFileExist(conf.GlobalProfile.KeyFileName) {
+			logger.Error("CRT file and PrivateKey File must both exist or both not exist!!!")
+		}
+
+		// 读取证书和密钥
+		crt, err := tls.LoadX509KeyPair(conf.GlobalProfile.CrtFileName, conf.GlobalProfile.KeyFileName)
+		if err != nil {
+			logger.Errorf("load x509 err: %v", err.Error())
+			return
+		}
+
+		// TLS连接
+		tlsConfig := &tls.Config{}
+		tlsConfig.Certificates = []tls.Certificate{crt}
+		tlsConfig.Time = time.Now
+		tlsConfig.Rand = rand.Reader
+		listener, err = tls.Listen(s.Version, fmt.Sprintf("%s:%d", s.IP, s.Port), tlsConfig)
+		if err != nil {
+			logger.Errorf("listen tcp tls err: %v", err)
+			return
+		}
+	} else {
+		// 开始正常的服务
+		addr, err := net.ResolveTCPAddr(s.Version, fmt.Sprintf("%s:%d", s.IP, s.Port))
+		if err != nil {
+			logger.Error("resolve tcp addr err,", err)
+			return
+		}
+
+		listener, err = net.ListenTCP(s.Version, addr)
+		if err != nil {
+			logger.Error("listen tcp err,", err)
+			return
+		}
 	}
 
 	// 开启一个协程检查退出信号
@@ -167,7 +221,7 @@ func (s *Server) Serve() {
 	for {
 
 		// 等待accept
-		tcpConn, err := listener.AcceptTCP()
+		tcpConn, err := listener.Accept()
 		if err != nil {
 			if errors.Is(err, net.ErrClosed) {
 				// 连接关闭，直接退出

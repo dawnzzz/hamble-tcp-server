@@ -16,7 +16,7 @@ import (
 type Connection struct {
 	cs iface.ICSBase // 指向客户端或者服务器（client/server）
 
-	conn *net.TCPConn // 原始 socket TCP 连接
+	conn net.Conn // 原始 socket TCP 连接
 
 	msgChan    chan iface.IMessage // 服务器待发送的消息放在这里
 	msgBufChan chan iface.IMessage // 带缓冲区的msgChan
@@ -31,7 +31,7 @@ type Connection struct {
 	lastAliveTime    time.Time // 上一次收到消息的时间，用于在心跳检测中检查是否存活
 }
 
-func newConnection(conn *net.TCPConn, cs iface.ICSBase) iface.IConnection {
+func newConnection(conn net.Conn, cs iface.ICSBase) iface.IConnection {
 	return &Connection{
 		cs:   cs,
 		conn: conn,
@@ -181,7 +181,7 @@ func (c *Connection) Stop() {
 	logger.Infof("close a connection from %s", c.RemoteAddr())
 }
 
-func (c *Connection) GetConn() *net.TCPConn {
+func (c *Connection) GetConn() net.Conn {
 	return c.conn
 }
 

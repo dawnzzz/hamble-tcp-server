@@ -1,6 +1,7 @@
 package hamble
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/dawnzzz/hamble-tcp-server/conf"
 	"github.com/dawnzzz/hamble-tcp-server/iface"
@@ -49,6 +50,40 @@ func NewClient(network string, ip string, port int) (iface.IClient, error) {
 	conn, err := net.DialTCP(network, nil, addr)
 	if err != nil {
 		logger.Errorf("dial tcp err: %s", err.Error())
+		return nil, err
+	}
+
+	// 创建新的连接
+	c.connection = newConnection(conn, c)
+
+	return c, nil
+}
+
+func NewTLSClient(network string, ip string, port int) (iface.IClient, error) {
+
+	router := newRouter()
+
+	c := &Client{
+		CSBase: CSBase{
+			router:      router,
+			dataPack:    NewDataPack(),
+			connManager: NewConnManager(),
+		},
+		Version:    network,
+		IP:         ip,
+		Port:       port,
+		connection: nil,
+		exitChan:   make(chan struct{}, 1),
+	}
+
+	// 发起连接
+	config := &tls.Config{
+		InsecureSkipVerify: true, //这里是跳过证书验证，因为证书签发机构的CA证书是不被认证的
+	}
+
+	conn, err := tls.Dial(network, fmt.Sprintf("%v:%v", ip, port), config)
+	if err != nil {
+		logger.Errorf("dial tls tcp err: %s", err.Error())
 		return nil, err
 	}
 

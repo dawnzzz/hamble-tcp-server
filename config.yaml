@@ -8,3 +8,7 @@ worker_pool_size: 10
 max_msg_chan_len: 1024
 max_heartbeat_time: 10
 log_file_name: hamble.log
+
+# TLS加密相关
+crt_file_name: crt.pem  # 证书
+key_file_name: key.pem  # 私钥
