@@ -1,5 +1,7 @@
 package iface
 
+import "time"
+
 // HeartBeatMsgFunc 用户自定义的心跳消息生成函数
 type HeartBeatMsgFunc func(IConnection) []byte
 
@@ -22,3 +24,12 @@ type IHeartBeatChecker interface {
 }
 
 const DefaultHeartbeatMsgID = uint32(11111)
+
+// CheckerOption 用户可以自定义的心跳检测机制选项
+type CheckerOption struct {
+	Interval         time.Duration
+	OnRemoteNotAlive OnRemoteNotAlive
+	HeartbeatMsgFunc HeartBeatMsgFunc // 用户自定义的心跳消息生成函数
+	MsgID            uint32           // 心跳消息的消息id
+	Handler          IHandler
+}

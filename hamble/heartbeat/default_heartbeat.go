@@ -13,7 +13,7 @@ func (heartbeatHandler *DefaultHandler) PreHandle(_ iface.IRequest) {
 }
 
 func (heartbeatHandler *DefaultHandler) Handle(request iface.IRequest) {
-	logger.Infof("receive heartbeat from %s, msgID=%v, data=%v", request.GetConnection().RemoteAddr(), request.GetMsgID(), request.GetData())
+	logger.Infof("receive heartbeat from %s, msgID=%v, data=%s", request.GetConnection().RemoteAddr(), request.GetMsgID(), request.GetData())
 }
 
 func (heartbeatHandler *DefaultHandler) PostHandle(_ iface.IRequest) {

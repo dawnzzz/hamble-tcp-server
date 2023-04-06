@@ -14,7 +14,7 @@ import (
 
 // Connection 与客户端的连接，实现了iface.IConnection接口
 type Connection struct {
-	TcpServer iface.IServer
+	cs iface.ICSBase // 指向客户端或者服务器（client/server）
 
 	conn *net.TCPConn // 原始 socket TCP 连接
 
@@ -31,12 +31,12 @@ type Connection struct {
 	lastAliveTime    time.Time // 上一次收到消息的时间，用于在心跳检测中检查是否存活
 }
 
-func NewConnection(conn *net.TCPConn, server iface.IServer) iface.IConnection {
+func newConnection(conn *net.TCPConn, cs iface.ICSBase) iface.IConnection {
 	return &Connection{
-		TcpServer: server,
-		conn:      conn,
+		cs:   cs,
+		conn: conn,
 
-		msgChan:    make(chan iface.IMessage),
+		msgChan:    make(chan iface.IMessage, 1),
 		msgBufChan: make(chan iface.IMessage, conf.GlobalProfile.MaxMsgChanLen),
 		exitChan:   make(chan struct{}, 1),
 
@@ -54,7 +54,7 @@ func (c *Connection) startRead() {
 			return
 		}
 
-		dataPack := c.TcpServer.GetDataPack()
+		dataPack := c.cs.GetDataPack()
 
 		buf := make([]byte, dataPack.GetHeadLen())
 		_, err := c.conn.Read(buf)
@@ -84,10 +84,10 @@ func (c *Connection) startRead() {
 
 		if conf.GlobalProfile.WorkerPoolSize > 0 {
 			//已经启动工作池机制，将消息交给Worker处理
-			c.TcpServer.GetRouter().SendMsgToTaskQueue(request)
+			c.cs.GetRouter().SendMsgToTaskQueue(request)
 		} else {
 			go func() {
-				c.TcpServer.GetRouter().DoHandler(request) // 执行 handler
+				c.cs.GetRouter().DoHandler(request) // 执行 handler
 			}()
 		}
 
@@ -135,28 +135,29 @@ func (c *Connection) startBufWrite() {
 func (c *Connection) Start() {
 	logger.Infof("accept a connection from %s", c.RemoteAddr())
 
-	c.TcpServer.GetConnManager().Add(c)
+	c.cs.GetConnManager().Add(c)
 
 	go c.startRead()
 	go c.startWrite()
 	go c.startBufWrite()
 
-	if c.TcpServer.GetHeartBeatChecker() != nil {
+	if c.cs.GetHeartBeatChecker() != nil {
 		// 开启心跳检测
-		heartbeatChecker := c.TcpServer.GetHeartBeatChecker().Clone()
+		heartbeatChecker := c.cs.GetHeartBeatChecker().Clone()
 		heartbeatChecker.BindConn(c)
 		c.heartbeatChecker = heartbeatChecker
 		c.heartbeatChecker.Start()
 	}
 
-	c.TcpServer.GetConnManager().Add(c) // 将当前连接添加到连接管理器中
+	c.cs.GetConnManager().Add(c) // 将当前连接添加到连接管理器中
 
 	// 执行Hook函数
-	c.TcpServer.CallOnConnStart(c)
+	c.cs.CallOnConnStart(c)
 
 	// 阻塞，直到退出
 	select {
 	case <-c.exitChan:
+		c.Stop()
 		return
 	}
 }
@@ -168,13 +169,13 @@ func (c *Connection) Stop() {
 	}
 
 	// 执行Hook函数
-	c.TcpServer.CallOnConnStop(c)
+	c.cs.CallOnConnStop(c)
 
 	// 关闭管道
 	close(c.msgChan)
 	close(c.msgBufChan)
 	_ = c.conn.Close()
-	c.TcpServer.GetConnManager().Remove(c)
+	c.cs.GetConnManager().Remove(c)
 	c.heartbeatChecker.Stop()
 
 	logger.Infof("close a connection from %s", c.RemoteAddr())
