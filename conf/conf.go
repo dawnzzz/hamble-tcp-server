@@ -32,6 +32,25 @@ func (profile *Profile) GetMaxHeartbeatTime() time.Duration {
 
 var GlobalProfile *Profile
 
+func init() {
+	GlobalProfile = &Profile{
+		Name:             "DefaultName",
+		Host:             "127.0.0.1",
+		Port:             6177,
+		TcpVersion:       "tcp4",
+		MaxConn:          12000,
+		MaxPacketSize:    0,
+		WorkerPoolSize:   10,
+		MaxWorkerTaskLen: 1024,
+		MaxMsgChanLen:    1024,
+		LogFileName:      "",
+		MaxHeartbeatTime: 10,
+		CrtFileName:      "crt.pem",
+		KeyFileName:      "crt.pem",
+		PrintBanner:      true,
+	}
+}
+
 func setViperDefault() {
 	viper.SetDefault("name", "DefaultName")
 	viper.SetDefault("host", "127.0.0.1")
