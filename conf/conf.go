@@ -32,10 +32,6 @@ func (profile *Profile) GetMaxHeartbeatTime() time.Duration {
 
 var GlobalProfile *Profile
 
-func init() {
-	Reload()
-}
-
 func setViperDefault() {
 	viper.SetDefault("name", "DefaultName")
 	viper.SetDefault("host", "127.0.0.1")
