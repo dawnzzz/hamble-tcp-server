@@ -23,6 +23,7 @@ type Profile struct {
 	MaxHeartbeatTime int    `mapstructure:"max_heartbeat_time"`  // 心跳检测的最大时间间隔
 	CrtFileName      string `mapstructure:"crt_file_name"`
 	KeyFileName      string `mapstructure:"key_file_name"`
+	PrintBanner      bool   `mapstructure:"print_banner"`
 }
 
 func (profile *Profile) GetMaxHeartbeatTime() time.Duration {
@@ -49,6 +50,7 @@ func setViperDefault() {
 	viper.SetDefault("max_heartbeat_time", 10)
 	viper.SetDefault("crt_file_name", "crt.pem")
 	viper.SetDefault("key_file_name", "key.pem")
+	viper.SetDefault("print_banner", true)
 }
 
 // Reload 重新加载配置文件
@@ -88,4 +90,62 @@ func PrintGlobalProfile() {
 
 	fmt.Print(builder.String())
 	fmt.Println("======================================================")
+}
+
+func BindProfile(profile *Profile) {
+	if profile.Name != "" {
+		GlobalProfile.Name = profile.Name
+	}
+
+	if profile.Host != "" {
+		GlobalProfile.Host = profile.Host
+	}
+
+	if profile.Port != 0 {
+		GlobalProfile.Port = profile.Port
+	}
+
+	if profile.TcpVersion != "" {
+		GlobalProfile.TcpVersion = profile.TcpVersion
+	}
+
+	if profile.MaxConn != 0 {
+		GlobalProfile.MaxConn = profile.MaxConn
+	}
+
+	if profile.MaxPacketSize != 0 {
+		GlobalProfile.MaxPacketSize = profile.MaxPacketSize
+	}
+
+	if profile.WorkerPoolSize != 0 {
+		GlobalProfile.WorkerPoolSize = profile.WorkerPoolSize
+	}
+
+	if profile.MaxWorkerTaskLen != 0 {
+		GlobalProfile.MaxWorkerTaskLen = profile.MaxWorkerTaskLen
+	}
+
+	if profile.MaxMsgChanLen != 0 {
+		GlobalProfile.MaxMsgChanLen = profile.MaxMsgChanLen
+	}
+
+	if profile.LogFileName != "" {
+		GlobalProfile.LogFileName = profile.LogFileName
+	}
+
+	if profile.MaxHeartbeatTime != 0 {
+		GlobalProfile.MaxHeartbeatTime = profile.MaxHeartbeatTime
+	}
+
+	if profile.CrtFileName != "" {
+		GlobalProfile.CrtFileName = profile.CrtFileName
+	}
+
+	if profile.KeyFileName != "" {
+		GlobalProfile.KeyFileName = profile.KeyFileName
+	}
+
+	if profile.PrintBanner != GlobalProfile.PrintBanner {
+		GlobalProfile.PrintBanner = profile.PrintBanner
+	}
 }

@@ -24,7 +24,7 @@ func (eh *RecvEchoHandler) Handle(request iface.IRequest) {
 }
 
 func main() {
-	c, err := hamble.NewClient("tcp", "127.0.0.1", 6177)
+	c, err := hamble.NewTLSClient("tcp", "127.0.0.1", 6177)
 	if err != nil {
 		fmt.Println(err)
 		return

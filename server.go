@@ -26,7 +26,7 @@ func (eh *EchoHandler) Handle(request iface.IRequest) {
 }
 
 func main() {
-	s := hamble.NewServer()
+	s := hamble.NewTLSServer()
 	s.RegisterHandler(0, &PingHandler{})
 	s.RegisterHandler(1, &EchoHandler{})
 	s.StartHeartbeat(5 * time.Second)

@@ -76,6 +76,47 @@ func NewTLSServer() iface.IServer {
 	return s
 }
 
+func NewServerWithOption(option *conf.Profile) iface.IServer {
+	conf.BindProfile(option)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	router := newRouter()
+
+	s := &Server{
+		CSBase: CSBase{
+			router:      router,
+			dataPack:    NewDataPack(),
+			connManager: NewConnManager(),
+		},
+
+		Name:    conf.GlobalProfile.Name,
+		Version: conf.GlobalProfile.TcpVersion,
+		IP:      conf.GlobalProfile.Host,
+		Port:    conf.GlobalProfile.Port,
+
+		ctx:         ctx,
+		cancel:      cancel,
+		closingChan: make(chan struct{}, 1),
+	}
+
+	logger.WithFields(logrus.Fields{
+		"TCPServer": "Hamble",
+		"Name":      s.Name,
+	})
+
+	return s
+}
+
+func NewTLSServerWithOption(option *conf.Profile) iface.IServer {
+	iServer := NewServerWithOption(option)
+
+	s, _ := iServer.(*Server)
+	s.useTLS = true
+
+	return s
+}
+
 const banner = `
  ___  ___  ________  _____ ______   ________  ___       _______      
 |\  \|\  \|\   __  \|\   _ \  _   \|\   __  \|\  \     |\  ___ \     
@@ -98,7 +139,10 @@ func (s *Server) Start() {
 		}
 	}
 
-	fmt.Printf("%s\n\npowered by %s\n\n", banner, url)
+	if conf.GlobalProfile.PrintBanner {
+		fmt.Printf("%s\n\npowered by %s\n\n", banner, url)
+	}
+
 	conf.PrintGlobalProfile()
 
 	if s.useTLS {
