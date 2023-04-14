@@ -176,7 +176,9 @@ func (c *Connection) Stop() {
 	close(c.msgBufChan)
 	_ = c.conn.Close()
 	c.cs.GetConnManager().Remove(c)
-	c.heartbeatChecker.Stop()
+	if c.heartbeatChecker != nil {
+		c.heartbeatChecker.Stop()
+	}
 
 	logger.Infof("close a connection from %s", c.RemoteAddr())
 }
