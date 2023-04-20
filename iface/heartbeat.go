@@ -30,6 +30,7 @@ type CheckerOption struct {
 	Interval         time.Duration
 	OnRemoteNotAlive OnRemoteNotAlive
 	HeartbeatMsgFunc HeartBeatMsgFunc // 用户自定义的心跳消息生成函数
+	HeartBeatFunc    HeartBeatFunc    // 用户一定义的心跳函数
 	MsgID            uint32           // 心跳消息的消息id
 	Handler          IHandler
 }

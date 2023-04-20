@@ -345,6 +345,10 @@ func (s *Server) StartHeartbeatWithOption(option iface.CheckerOption) {
 		s.checker.SetOnRemoteNotAlive(option.OnRemoteNotAlive)
 	}
 
+	if option.HeartBeatFunc != nil {
+		s.checker.SetHeartbeatFunc(option.HeartBeatFunc)
+	}
+
 	if option.Handler != nil {
 		s.RegisterHandler(option.MsgID, option.Handler)
 	} else {
