@@ -134,6 +134,8 @@ func (c *Connection) startBufWrite() {
 
 func (c *Connection) Start() {
 	logger.Infof("accept a connection from %s", c.RemoteAddr())
+	// 执行Hook函数
+	c.cs.CallOnConnStart(c)
 
 	c.cs.GetConnManager().Add(c)
 
@@ -148,11 +150,6 @@ func (c *Connection) Start() {
 		c.heartbeatChecker = heartbeatChecker
 		c.heartbeatChecker.Start()
 	}
-
-	c.cs.GetConnManager().Add(c) // 将当前连接添加到连接管理器中
-
-	// 执行Hook函数
-	c.cs.CallOnConnStart(c)
 
 	// 阻塞，直到退出
 	select {
